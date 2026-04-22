@@ -212,6 +212,7 @@ def send_message():
         def generate():
             """Parse SSE stream and forward to client"""
             current_event = None
+            has_sent_data = False
 
             for line in response.iter_lines():
                 if line:
@@ -219,28 +220,63 @@ def send_message():
 
                     if line_str.startswith('event: '):
                         current_event = line_str[7:].strip()
+                        print(f"[STREAM] Event type: {current_event}")
 
                     elif line_str.startswith('data: '):
                         data_str = line_str[6:]
 
                         try:
                             event_data = json.loads(data_str)
+                            print(f"[STREAM] Data: {json.dumps(event_data, indent=2)}")
+
                             message_data = event_data.get('message', {})
                             msg_type = message_data.get('type')
 
                             if current_event == 'TEXT_CHUNK' or msg_type == 'TextChunk':
-                                text = message_data.get('message', '')
+                                # Try multiple possible fields for the text content
+                                text = (message_data.get('message') or
+                                       message_data.get('text') or
+                                       message_data.get('content') or '')
                                 if text:
+                                    print(f"[STREAM] Sending text chunk: {text[:50]}...")
+                                    has_sent_data = True
                                     yield f"data: {json.dumps({'type': 'chunk', 'text': text})}\n\n"
+                                else:
+                                    print(f"[STREAM] TEXT_CHUNK with no text found in: {message_data}")
+
+                            elif current_event == 'INFORM' or msg_type == 'Inform':
+                                # Handle Inform messages with results
+                                text = message_data.get('message', '')
+                                result_data = message_data.get('result', [])
+
+                                # Build the full response text
+                                response_text = text
+                                if result_data:
+                                    for item in result_data:
+                                        if isinstance(item, dict) and 'value' in item:
+                                            value = item['value']
+                                            if isinstance(value, dict) and 'result' in value:
+                                                response_text += f"\n{value['result']}"
+
+                                if response_text:
+                                    print(f"[STREAM] Sending inform message: {response_text[:100]}...")
+                                    has_sent_data = True
+                                    yield f"data: {json.dumps({'type': 'chunk', 'text': response_text})}\n\n"
 
                             elif current_event == 'END_OF_TURN' or msg_type == 'EndOfTurn':
+                                print("[STREAM] End of turn")
                                 yield f"data: {json.dumps({'type': 'end'})}\n\n"
 
                             elif msg_type == 'ProgressIndicator':
+                                print("[STREAM] Progress indicator")
                                 yield f"data: {json.dumps({'type': 'progress'})}\n\n"
 
-                        except json.JSONDecodeError:
+                        except json.JSONDecodeError as e:
+                            print(f"[STREAM ERROR] JSON decode error: {e}")
                             pass
+
+            if not has_sent_data:
+                print("[STREAM WARNING] Stream ended without sending any text chunks")
 
         return Response(generate(), mimetype='text/event-stream')
 
