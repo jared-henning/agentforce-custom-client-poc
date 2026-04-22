@@ -179,7 +179,7 @@
                                         agentMessageDiv = addMessage('', false);
                                     }
                                     fullText += data.text;
-                                    agentMessageDiv.textContent = fullText;
+                                    agentMessageDiv.innerHTML = fullText;
                                     scrollToBottom();
                                 } else if (data.type === 'end') {
                                     console.log('Received end of turn signal');
