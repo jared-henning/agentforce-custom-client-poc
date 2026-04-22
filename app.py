@@ -113,6 +113,39 @@ class AgentAPIClient:
                 print(f"[SESSION ERROR] Response: {e.response.text}")
             raise
 
+    def send_message(self, session_id, message):
+        """Send a message and get the complete response"""
+        self.sequence_id += 1
+        url = f"https://api.salesforce.com/einstein/ai-agent/v1/sessions/{session_id}/messages"
+
+        payload = {
+            'message': {
+                'sequenceId': self.sequence_id,
+                'type': 'Text',
+                'text': message
+            },
+            'variables': []
+        }
+
+        print(f"[MESSAGE] Sending message (seq: {self.sequence_id}): {message[:50]}...")
+
+        try:
+            response = requests.post(
+                url,
+                headers=self._get_headers(),
+                json=payload,
+                timeout=120
+            )
+            response.raise_for_status()
+
+            return response.json()
+
+        except requests.exceptions.RequestException as e:
+            print(f"[MESSAGE ERROR] Failed to send message: {e}")
+            if hasattr(e, 'response') and e.response is not None:
+                print(f"[MESSAGE ERROR] Response: {e.response.text}")
+            raise
+
     def send_message_streaming(self, session_id, message):
         """Send a message and stream the response"""
         self.sequence_id += 1
@@ -197,8 +230,8 @@ def start_session():
 
 
 @app.route('/api/message', methods=['POST'])
-def send_message():
-    """Send a message and stream the response"""
+def send_message_route():
+    """Send a message and get the response"""
     try:
         data = request.json
         session_id = data.get('sessionId')
@@ -207,78 +240,35 @@ def send_message():
         if not session_id or not message:
             return jsonify({'error': 'Missing sessionId or message'}), 400
 
-        response = agent_client.send_message_streaming(session_id, message)
+        response_data = agent_client.send_message(session_id, message)
+        print(f"[RESPONSE] Received: {json.dumps(response_data, indent=2)}")
 
-        def generate():
-            """Parse SSE stream and forward to client"""
-            current_event = None
-            has_sent_data = False
+        # Extract the response text from the messages
+        messages = response_data.get('messages', [])
+        response_text = ''
 
-            for line in response.iter_lines():
-                if line:
-                    line_str = line.decode('utf-8')
+        for msg in messages:
+            msg_type = msg.get('type')
 
-                    if line_str.startswith('event: '):
-                        current_event = line_str[7:].strip()
-                        print(f"[STREAM] Event type: {current_event}")
+            if msg_type == 'TextMessage':
+                response_text += msg.get('message', '')
 
-                    elif line_str.startswith('data: '):
-                        data_str = line_str[6:]
+            elif msg_type == 'Inform':
+                text = msg.get('message', '')
+                result_data = msg.get('result', [])
 
-                        try:
-                            event_data = json.loads(data_str)
-                            print(f"[STREAM] Data: {json.dumps(event_data, indent=2)}")
+                response_text += text
+                if result_data:
+                    for item in result_data:
+                        if isinstance(item, dict) and 'value' in item:
+                            value = item['value']
+                            if isinstance(value, dict) and 'result' in value:
+                                response_text += f"\n{value['result']}"
 
-                            message_data = event_data.get('message', {})
-                            msg_type = message_data.get('type')
-
-                            if current_event == 'TEXT_CHUNK' or msg_type == 'TextChunk':
-                                # Try multiple possible fields for the text content
-                                text = (message_data.get('message') or
-                                       message_data.get('text') or
-                                       message_data.get('content') or '')
-                                if text:
-                                    print(f"[STREAM] Sending text chunk: {text[:50]}...")
-                                    has_sent_data = True
-                                    yield f"data: {json.dumps({'type': 'chunk', 'text': text})}\n\n"
-                                else:
-                                    print(f"[STREAM] TEXT_CHUNK with no text found in: {message_data}")
-
-                            elif current_event == 'INFORM' or msg_type == 'Inform':
-                                # Handle Inform messages with results
-                                text = message_data.get('message', '')
-                                result_data = message_data.get('result', [])
-
-                                # Build the full response text
-                                response_text = text
-                                if result_data:
-                                    for item in result_data:
-                                        if isinstance(item, dict) and 'value' in item:
-                                            value = item['value']
-                                            if isinstance(value, dict) and 'result' in value:
-                                                response_text += f"\n{value['result']}"
-
-                                if response_text:
-                                    print(f"[STREAM] Sending inform message: {response_text[:100]}...")
-                                    has_sent_data = True
-                                    yield f"data: {json.dumps({'type': 'chunk', 'text': response_text})}\n\n"
-
-                            elif current_event == 'END_OF_TURN' or msg_type == 'EndOfTurn':
-                                print("[STREAM] End of turn")
-                                yield f"data: {json.dumps({'type': 'end'})}\n\n"
-
-                            elif msg_type == 'ProgressIndicator':
-                                print("[STREAM] Progress indicator")
-                                yield f"data: {json.dumps({'type': 'progress'})}\n\n"
-
-                        except json.JSONDecodeError as e:
-                            print(f"[STREAM ERROR] JSON decode error: {e}")
-                            pass
-
-            if not has_sent_data:
-                print("[STREAM WARNING] Stream ended without sending any text chunks")
-
-        return Response(generate(), mimetype='text/event-stream')
+        return jsonify({
+            'response': response_text,
+            'raw': response_data
+        })
 
     except Exception as e:
         print(f"[API ERROR] {e}")
