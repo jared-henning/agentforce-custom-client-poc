@@ -1,15 +1,14 @@
-# Salesforce Agent API Demo Client
+# Agentforce Agent API - Custom Client POC
 
-A simple web-based demo application for interacting with Salesforce Agentforce agents using the Agent API. Perfect for customer demonstrations and testing agent conversations.
+Internal proof-of-concept demonstrating how to build a custom client for Agentforce using the Agent API. This implementation shows OAuth 2.0 authentication, session management, and SSE streaming.
 
-## Features
+## What This Demonstrates
 
-- 🤖 Real-time streaming conversations with Agentforce agents
-- 💬 Clean, modern chat interface
-- 🔐 OAuth 2.0 authentication with client credentials flow
-- 📱 Responsive design for demos
-- 🔄 Multi-turn conversations with context
-- 🚀 Easy to setup and run locally
+- Client credentials OAuth flow for server-to-server authentication
+- Agent API session lifecycle (create, message, close)
+- Server-Sent Events (SSE) for streaming agent responses
+- Multi-turn conversations with session context
+- Simple web UI for testing and validation
 
 ## Quick Start
 
@@ -41,9 +40,9 @@ python3 app.py
 
 ### 4. Open in Browser
 
-Navigate to `http://localhost:5000` and start chatting with your agent!
+Navigate to `http://localhost:5000` to test the implementation.
 
-## Getting Your Salesforce Credentials
+## Configuration Setup
 
 ### Step 1: Find Your My Domain URL
 
@@ -147,13 +146,12 @@ agent-api-poc/
 
 ### Frontend (`static/index.html`)
 
-- Modern, gradient-styled chat interface
-- Real-time message streaming using the Fetch API
-- User messages appear on the right (blue)
-- Agent messages appear on the left (gray)
-- Typing indicator while agent is processing
-- "New Session" button to restart conversations
-- Auto-scrolls to show latest messages
+- Basic chat interface for testing
+- Streams responses using Fetch API with SSE
+- User messages (right, blue) / Agent messages (left, gray)
+- Typing indicator during processing
+- Session reset capability
+- Auto-scroll to latest messages
 
 ## Troubleshooting
 
@@ -245,14 +243,21 @@ When streaming responses, the API returns these event types:
 - `ProgressIndicator` - Agent is processing
 - `ValidationFailureChunk` - Validation error occurred
 
-## Development Notes
+## Implementation Notes
 
-- This is a demo application, not production-ready
-- Tokens are cached in memory (lost on restart)
-- Session state is stored in memory (single user)
-- No database or persistence layer
-- Basic error handling only
-- Flask debug mode is enabled
+**What's Included:**
+- OAuth token caching (memory, ~2 hour TTL)
+- Session management (in-memory, single user)
+- SSE streaming implementation
+- Basic error handling
+
+**What's NOT Included (production requirements):**
+- Persistent storage
+- Multi-user support
+- Rate limiting
+- Comprehensive error handling
+- Production security hardening
+- Logging/monitoring
 
 ## Requirements
 
@@ -268,17 +273,6 @@ When streaming responses, the API returns these event types:
 - [OAuth 2.0 Client Credentials Flow](https://help.salesforce.com/s/articleView?id=sf.remoteaccess_oauth_client_credentials_flow.htm)
 - [Creating Connected Apps](https://help.salesforce.com/s/articleView?id=sf.connected_app_create.htm)
 
-## License
+## Notes
 
-This is a demo application for educational purposes.
-
-## Support
-
-For issues with:
-- **Agent API**: Check Salesforce documentation and community forums
-- **This demo app**: Review the troubleshooting section above
-- **Salesforce setup**: Contact your Salesforce administrator
-
----
-
-**Happy demoing! 🚀**
+This is an internal POC for reference and testing purposes. Not intended for production use.
