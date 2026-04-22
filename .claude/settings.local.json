@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:developer.salesforce.com)",
+      "WebFetch(domain:help.salesforce.com)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:www.postman.com)",
+      "WebFetch(domain:trailhead.salesforce.com)"
+    ]
+  }
+}
