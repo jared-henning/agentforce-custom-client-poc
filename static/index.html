@@ -54,7 +54,13 @@
 
             const contentDiv = document.createElement('div');
             contentDiv.className = 'message-content';
-            contentDiv.textContent = text;
+
+            // Use innerHTML for agent messages to render HTML formatting, textContent for user messages
+            if (isUser) {
+                contentDiv.textContent = text;
+            } else {
+                contentDiv.innerHTML = text;
+            }
 
             messageDiv.appendChild(contentDiv);
             chatContainer.appendChild(messageDiv);
