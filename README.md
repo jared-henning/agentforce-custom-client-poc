@@ -78,23 +78,29 @@ Navigate to `http://localhost:5000` and start chatting with your agent!
 
 ### Step 3: Find Your Agent ID
 
-**Option 1: Via Setup UI**
-1. Go to **Setup** → **Agents**
-2. Click on your agent
-3. Look for the **Developer Name** or **API Name**
-4. This is your `SALESFORCE_AGENT_ID`
+⚠️ **Important**: The `SALESFORCE_AGENT_ID` is the **18-character Agent record ID**, NOT the API name or developer name. It always begins with the `0Xx` prefix (the 3-character entity prefix for Agent records).
 
-**Option 2: Via Developer Console**
+**Example**: `0XxHs0000010p5vKAA`
+
+**How to find it:**
+
+**Option 1: Via Setup UI (Legacy Agentforce Builder)**
+1. Go to **Setup** → **Agentforce Agents**
+2. Click on your agent to view the Agent Overview Page
+3. Look at the URL in your browser - the 18-character ID is at the end
+4. Example URL: `https://yourcompany.salesforce-setup.com/lightning/setup/EinsteinCopilot/0XxSB000000IPCr0AO/edit`
+5. The ID `0XxSB000000IPCr0AO` is your `SALESFORCE_AGENT_ID`
+
+**Option 2: Via SOQL Query (New Agentforce Builder)**
 1. Open Developer Console
 2. Go to **Query Editor**
-3. Run: `SELECT Id, DeveloperName, MasterLabel FROM Agent WHERE MasterLabel = 'Your Agent Name'`
-4. Use the `DeveloperName` value as your `SALESFORCE_AGENT_ID`
+3. Run: `SELECT Id, DeveloperName, MasterLabel FROM BotDefinition WHERE DeveloperName = 'Your_Agent_Developer_Name'`
+4. Use the `Id` value (18-character ID starting with `0Xx`) as your `SALESFORCE_AGENT_ID`
 
-**Option 3: Via Agent Builder**
-1. Open your agent in Agent Builder
-2. Click the gear icon (Settings)
-3. The API Name or Developer Name will be displayed
-4. Format is typically like: `YourAgentName` (no spaces)
+**Option 3: Check the URL in Agent Builder**
+1. Open your agent in Agent Builder (legacy or new)
+2. Look at the browser URL
+3. The 18-character ID in the URL is your agent ID
 
 ### Step 4: Update Your .env File
 
@@ -102,7 +108,7 @@ Navigate to `http://localhost:5000` and start chatting with your agent!
 SALESFORCE_DOMAIN=yourcompany.my.salesforce.com
 SALESFORCE_CLIENT_ID=3MVG9...your_consumer_key_here
 SALESFORCE_CLIENT_SECRET=12345...your_consumer_secret_here
-SALESFORCE_AGENT_ID=YourAgentName
+SALESFORCE_AGENT_ID=0XxHs0000010p5vKAA
 ```
 
 ## Project Structure
